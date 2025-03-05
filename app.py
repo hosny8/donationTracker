@@ -1,6 +1,9 @@
 from flask import Flask, request, jsonify
+from datetime import datetime
 
 app = Flask(__name__)
+
+
 
 donations = []
 
@@ -89,6 +92,56 @@ def getTopDonors(n):
 def delete_request(n):
     donations.clear()
     return jsonify({"message": "All donations deleted"}), 200 
+    
+
+@app.route('/donations/date_range', methods=['GET'])
+def donations_in_date_range():
+    donation_total_date = []
+    start_date = request.args.get('start_date') 
+    end_date = request.args.get('end_date')
+
+    # Try to convert the string dates to actual date objects
+    try:
+        start_date = datetime.strptime(start_date_str, '%Y-%m-%d')
+        end_date = datetime.strptime(end_date_str, '%Y-%m-%d')
+    except:
+        return jsonify({"error"})
+    
+    
+    for donation in donations:
+        donation_date = datetime.strptime(donation['donation_date'], '%Y-%m-%d')
+        if start_date <= donation_date <= end_date:
+            donation_total_date.append(donation)
+    
+    
+    return jsonify({"These are the donations in the date range: " : donation_total_date}), 200
+
+@app.route('/donations/date_range', methods=['GET'])
+def donations_in_date_range_USD():
+    donation_total_date = []
+    start_date = request.args.get('start_date') 
+    end_date = request.args.get('end_date')
+
+    # Try to convert the string dates to actual date objects
+    try:
+         start_date = datetime.strptime(start_date_str, '%Y-%m-%d')
+         end_date = datetime.strptime(end_date_str, '%Y-%m-%d')
+    except:
+        return jsonify({"error"})
+    
+    
+    for donation in donations:
+        donation_date = datetime.strptime(donation['donation_date'], '%Y-%m-%d')
+        if start_date <= donation_date <= end_date:
+            if donation["donation_type"] == "USD":
+                donation_total_date.append(donation['amount'])
+               
+
+    total = sum(donation_total_date)
+
+    
+    return jsonify({"This is the total amount of donations in this date range: " : total}), 200          
+            
 
   
 
