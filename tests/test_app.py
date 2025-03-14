@@ -116,4 +116,4 @@ class DonationAPITestCase(unittest.TestCase):
         response = self.app.get('/donations/top')
         self.assertEqual(response.status_code, 200)
         data = json.loads(response.data)
-        self.assertEqual(data["top_donations"], 50)   
+        self.assertEqual(data["top_donations"], 50)         
