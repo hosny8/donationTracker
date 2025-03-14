@@ -35,11 +35,11 @@ def add_donation(donor, donation_type, amount):
         return jsonify({"error": "Missing fields"}), 400
 
     donation = Donation(
-        id=data['id'],
-        donor=data['donor'],
-        donation_type=data['donation_type'],
-        amount=data['amount'],
-        donation_date=data['donation_date']
+        id = data['id'],
+        donor = data['donor'],
+        donation_type = data['donation_type'],
+        amount = data['amount'],
+        donation_date = data['donation_date']
     )
     db.session.add(donation)
     db.session.commit()
