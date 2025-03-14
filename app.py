@@ -1,15 +1,31 @@
 from flask import Flask, request, jsonify
+from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 
 app = Flask(__name__)
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///donations.db'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
+db = SQLAlchemy(app)
 
+class Donation(db.model):
+    id = db.Column(db.Integer, primary_key=True)
+    donor = db.Column(db.String(100), nullable=False)
+    donation_type = db.Column(db.String(10), nullable=False)
+    amount = db.Column(db.Float, nullable=False)
+    donation_date = db.Column(db.Datetime, datetime.utcnow)
+
+@app.before_first_request
+def create_tables():
+    db.create_all()
 
 donations = []
 
 @app.route('/donations', methods=['GET'])
 def get_donations():
-    return jsonify(donations), 200
+    donations = Donation.query.all()
+    return jsonify([{'id': d.id, 'donor': d.donor, 'amount': d.amount, 'donation_type': d.donation_type, 'donation_date': d.donation_date}.strftime('%Y-%m-%d') for d in donations])
+     
 
 @app.route('/donation', methods=['POST'])
 def add_donation(donor, donation_type, amount):
@@ -18,24 +34,29 @@ def add_donation(donor, donation_type, amount):
     if "donor" not in data or "donation_type" not in data or "amount" not in data:
         return jsonify({"error": "Missing fields"}), 400
 
-    donation = {
-        'donor': data['donor'],
-        'donation_type': data['donation_type'],
-        'amount': data['amount']
-    }
-
-    donations.append(donation)
+    donation = Donation(
+        id=data['id'],
+        donor=data['donor'],
+        donation_type=data['donation_type'],
+        amount=data['amount'],
+        donation_date=data['donation_date']
+    )
+    db.session.add(donation)
+    db.session.commit()
 
     return jsonify({"message": "Donation added successfully!"}), 201
 
+
 @app.route('/donation/<int:index>', methods=['DELETE'])
-def delete_donation(index):
-    if index < 0 or index >= len(donations):
+def delete_donation(id):
+    donation = Donation.queury.get(id)
+    if id < 0 or id >= len(donations):
         return jsonify({"error": "Invalid index"}), 400
 
-    deleted_donation = donations.pop(index)
+    db.session.delete(donation)
+    db.session.commit()
 
-    return jsonify({"message": "Donation deleted successfully!", "deleted": deleted_donation}), 200
+    return jsonify({"message": "Donation deleted successfully!", "deleted": delete_donation}), 200
 
 @app.route('/donations/total', methods=['GET'])
 def total_donations():
@@ -86,50 +107,50 @@ def getTopDonors(n):
     top_donors = dict(list(sorted_top_donors.items())[n:])
     return jsonify({"top donors": top_donors}), 200
     
-    
+
 
 @app.route('/donations/top/<int:n>', methods=['DELETE'])
 def delete_request(n):
     donations.clear()
     return jsonify({"message": "All donations deleted"}), 200 
-    
+
 
 @app.route('/donations/date_range', methods=['GET'])
 def donations_in_date_range():
     donation_total_date = []
-    start_date = request.args.get('start_date') 
+    start_date = request.args.get('start_date')
     end_date = request.args.get('end_date')
 
-    # Try to convert the string dates to actual date objects
+
     try:
-        start_date = datetime.strptime(start_date_str, '%Y-%m-%d')
-        end_date = datetime.strptime(end_date_str, '%Y-%m-%d')
+        start_date = datetime.strptime(start_date, '%Y-%m-%d')
+        end_date = datetime.strptime(end_date, '%Y-%m-%d')
     except:
         return jsonify({"error"})
-    
-    
+   
+   
     for donation in donations:
         donation_date = datetime.strptime(donation['donation_date'], '%Y-%m-%d')
         if start_date <= donation_date <= end_date:
             donation_total_date.append(donation)
-    
-    
+   
+   
     return jsonify({"These are the donations in the date range: " : donation_total_date}), 200
 
 @app.route('/donations/date_range', methods=['GET'])
 def donations_in_date_range_USD():
     donation_total_date = []
-    start_date = request.args.get('start_date') 
+    start_date = request.args.get('start_date')
     end_date = request.args.get('end_date')
 
-    # Try to convert the string dates to actual date objects
+
     try:
-         start_date = datetime.strptime(start_date_str, '%Y-%m-%d')
-         end_date = datetime.strptime(end_date_str, '%Y-%m-%d')
+         start_date = datetime.strptime(start_date, '%Y-%m-%d')
+         end_date = datetime.strptime(end_date, '%Y-%m-%d')
     except:
         return jsonify({"error"})
-    
-    
+   
+   
     for donation in donations:
         donation_date = datetime.strptime(donation['donation_date'], '%Y-%m-%d')
         if start_date <= donation_date <= end_date:
@@ -139,9 +160,9 @@ def donations_in_date_range_USD():
 
     total = sum(donation_total_date)
 
-    
+   
     return jsonify({"This is the total amount of donations in this date range: " : total}), 200          
-            
+           
 
   
 
