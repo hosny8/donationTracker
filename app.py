@@ -1,4 +1,5 @@
 from flask import Flask, request, jsonify
+
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 
@@ -25,7 +26,6 @@ donations = []
 def get_donations():
     donations = Donation.query.all()
     return jsonify([{'id': d.id, 'donor': d.donor, 'amount': d.amount, 'donation_type': d.donation_type, 'donation_date': d.donation_date}.strftime('%Y-%m-%d') for d in donations])
-     
 
 @app.route('/donation', methods=['POST'])
 def add_donation(donor, donation_type, amount):
@@ -55,42 +55,26 @@ def delete_donation(id):
 
     db.session.delete(donation)
     db.session.commit()
-
     return jsonify({"message": "Donation deleted successfully!", "deleted": delete_donation}), 200
 
 @app.route('/donations/total', methods=['GET'])
 def total_donations():
-    total = 0
-    for donation in donations:
-        total += donation['amount']
-
+    total = Donation.queruy.count()
     return jsonify({"total_donations": total}), 200
 
 @app.route('/donations/total/USD', methods=['GET'])
 def total_donations_usd():
-    total = 0
-    for donation in donations:
-        if donation['donation_type'] == "USD":
-            total += donation['amount']
-
+    total = Donation.queruy.filter_by(donation_type='USD').count()
     return jsonify({"total_usd_donations": total}), 200
 
 @app.route('/donations/total/EURO', methods=['GET'])
 def total_donations_euro():
-    total = 0
-    for donation in donations:
-        if donation['donation_type'] == "EURO":
-            total += donation['amount']
-
-    return jsonify({"total_euro_donations": total}), 200
+    total = Donation.queruy.filter_by(donation_type='EURO').count()
+    return jsonify({"total_usd_donations": total}), 200
 
 @app.route('/donations/donor/<donor>', methods=['GET'])
 def find_donation_by_donor(donor):
-    total = 0
-    for donation in donations:
-        if donation['donor'] == donor:
-            total += donation['amount']
-
+    total = Donation.queruy.filter_by(donor=donor).count()
     return jsonify({"total_by_donor": total}), 200
 
 
@@ -165,6 +149,7 @@ def donations_in_date_range_USD():
            
 
   
+
 
 if __name__ == '__main__':
     app.run(debug=True)
