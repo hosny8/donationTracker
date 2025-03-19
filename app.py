@@ -55,7 +55,9 @@ def delete_donation(id):
 
     db.session.delete(donation)
     db.session.commit()
+
     return jsonify({"message": "Donation deleted successfully!", "deleted": delete_donation}), 200
+
 
 @app.route('/donations/total', methods=['GET'])
 def total_donations():
@@ -94,62 +96,33 @@ def getTopDonors(n):
 
 
 @app.route('/donations/top/<int:n>', methods=['DELETE'])
-def delete_request(n):
-    donations.clear()
-    return jsonify({"message": "All donations deleted"}), 200 
+def delete_request():
+    clear_donations = Donation.queruy.delete()
+    db.session.commit()
+    return jsonify({"message": "All donations deleted"}), 200
 
 
 @app.route('/donations/date_range', methods=['GET'])
-def donations_in_date_range():
-    donation_total_date = []
+def donations_in_date_range(start_date, end_date):
     start_date = request.args.get('start_date')
     end_date = request.args.get('end_date')
-
-
-    try:
-        start_date = datetime.strptime(start_date, '%Y-%m-%d')
-        end_date = datetime.strptime(end_date, '%Y-%m-%d')
-    except:
-        return jsonify({"error"})
-   
-   
-    for donation in donations:
-        donation_date = datetime.strptime(donation['donation_date'], '%Y-%m-%d')
-        if start_date <= donation_date <= end_date:
-            donation_total_date.append(donation)
-   
-   
-    return jsonify({"These are the donations in the date range: " : donation_total_date}), 200
+    donations_in_date_range = Donation.queruy.filter(Donation.donation_date >= start_date, Donation.donation_date <= end_date).all()
+    return jsonify([{'id': d.id, 'donor': d.donor, 'amount': d.amount, 'donation_type': d.donation_type, 'donation_date': d.donation_date}.strftime('%Y-%m-%d') for d in donations_in_date_range]), 200
 
 @app.route('/donations/date_range', methods=['GET'])
-def donations_in_date_range_USD():
-    donation_total_date = []
+def donations_in_date_range_USD(start_date, end_date):
     start_date = request.args.get('start_date')
     end_date = request.args.get('end_date')
+    donations_in_date_range_USD = Donation.queruy.filter(Donation.donation_date >= start_date, Donation.donation_date <= end_date, Donation.donation_type == 'USD').all() 
+    return jsonify([{'id': d.id, 'donor': d.donor, 'amount': d.amount, 'donation_type': d.donation_type, 'donation_date': d.donation_date}.strftime('%Y-%m-%d') for d in donations_in_date_range_USD]), 200      
 
 
-    try:
-         start_date = datetime.strptime(start_date, '%Y-%m-%d')
-         end_date = datetime.strptime(end_date, '%Y-%m-%d')
-    except:
-        return jsonify({"error"})
-   
-   
-    for donation in donations:
-        donation_date = datetime.strptime(donation['donation_date'], '%Y-%m-%d')
-        if start_date <= donation_date <= end_date:
-            if donation["donation_type"] == "USD":
-                donation_total_date.append(donation['amount'])
-               
-
-    total = sum(donation_total_date)
-
-   
-    return jsonify({"This is the total amount of donations in this date range: " : total}), 200          
-           
-
-  
-
+@app.route('/donations/date_range', methods=['GET'])
+def donations_in_date_range_EURO(start_date, end_date):
+    start_date = request.args.get('start_date')
+    end_date = request.args.get('end_date')
+    donations_in_date_range_EURO = Donation.queruy.filter(Donation.donation_date >= start_date, Donation.donation_date <= end_date, Donation.donation_type == 'EURO').all()
+    return jsonify([{'id': d.id, 'donor': d.donor, 'amount': d.amount, 'donation_type': d.donation_type, 'donation_date': d.donation_date}.strftime('%Y-%m-%d') for d in donations_in_date_range_EURO]), 200
 
 if __name__ == '__main__':
     app.run(debug=True)
