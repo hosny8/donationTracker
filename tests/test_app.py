@@ -116,4 +116,52 @@ class DonationAPITestCase(unittest.TestCase):
         response = self.app.get('/donations/top')
         self.assertEqual(response.status_code, 200)
         data = json.loads(response.data)
-        self.assertEqual(data["top_donations"], 50)         
+        self.assertEqual(data["top_donations"], 50)
+    
+    def test_delete_request(self):
+        response = self.app.delete('/donations')
+        self.assertEqual(response.status_code, 200)
+        data = json.loads(response.data)
+        self.assertEqual(data["message"], "All donations deleted")
+
+    def test_donations_in_date_range(self):
+        response = self.app.post('/donation', json={
+            "donor": "Alice",
+            "donation_type": "USD",
+            "amount": 50,
+            "donation_date": "2021-04-01"
+        }
+        )
+
+        response = self.app.get('/donations/date/2021-04-01/2021-04-01')
+        self.assertEqual(response.status_code, 200)
+        data = json.loads(response.data)
+        self.assertEqual(data["donations_in_date_range"], 50)
+    
+    def test_donations_in_date_range_USD(self):
+        response = self.app.post('/donation', json={
+            "donor": "Alice",
+            "donation_type": "USD",
+            "amount": 50,
+            "donation_date": "2021-04-01"
+        }
+        )
+
+        response = self.app.get('/donations/date/2021-04-01/2021-04-01/USD')
+        self.assertEqual(response.status_code, 200)
+        data = json.loads(response.data)
+        self.assertEqual(data["donations_in_date_range_usd"], 50)
+    
+    def test_donations_in_date_range_EURO(self):
+        response = self.app.post('/donation', json={
+            "donor": "Alice",
+            "donation_type": "EURO",
+            "amount": 50,
+            "donation_date": "2021-04-01"
+        }
+        )
+
+        response = self.app.get('/donations/date/2021-04-01/2021-04-01/EURO')
+        self.assertEqual(response.status_code, 200)
+        data = json.loads(response.data)
+        self.assertEqual(data["donations_in_date_range_euro"], 0)    
