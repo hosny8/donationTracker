@@ -99,7 +99,7 @@ def getTopDonors(n):
 def delete_request():
     clear_donations = Donation.queruy.delete()
     db.session.commit()
-    return jsonify({"message": "All donations deleted"}), 200
+    return jsonify({"message": "Donations deleted successfully!", "deleted": clear_donations}), 200
 
 
 @app.route('/donations/date_range', methods=['GET'])
