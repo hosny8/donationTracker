@@ -24,21 +24,26 @@ class DonationAPITestCase(unittest.TestCase):
             "donor": "Alice",
             "donation_type": "USD",
             "amount": 50
-        })
-        self.assertEqual(response.status_code, 201)
-        all_delete = donations.delete_request()
-        self.assertEqual(all_delete, "message: All donations deleted")
+        }
+        )
+
+        response = self.app.delete('/donations')
+        self.assertEqual(response.status_code, 200)
+        data = json.loads(response.data)
+        self.assertEqual(data["message"], "All donations deleted")
 
     def test_delete_donation(self):
         response = self.app.post('/donation', json={
             "donor": "Alice",
             "donation_type": "USD",
             "amount": 50
-        })
+        }
+        )
 
-        self.assertEqual(response.status_code, 201)
-        delete = donations.delete_donation()
-        self.assertEqual(delete, "message: Donation deleted successfully!", "deleted: deleted_donation")
+        response = self.app.delete('/donation/1')
+        self.assertEqual(response.status_code, 200)
+        data = json.loads(response.data)
+        self.assertEqual(data["message"], "Donation deleted successfully!")
 
     def test_total_donations(self):
         response = self.app.post('/donation', json={
@@ -164,4 +169,4 @@ class DonationAPITestCase(unittest.TestCase):
         response = self.app.get('/donations/date/2021-04-01/2021-04-01/EURO')
         self.assertEqual(response.status_code, 200)
         data = json.loads(response.data)
-        self.assertEqual(data["donations_in_date_range_euro"], 0)    
+        self.assertEqual(data["donations_in_date_range_euro"], 0)
