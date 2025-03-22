@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Donation Management System</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <style>
+        .donation-card {
+            transition: transform 0.2s;
+            margin-bottom: 1rem;
+        }
+        .donation-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        .stats-card {
+            background-color: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            transition: all 0.3s ease;
+        }
+        .stats-card:hover {
+            background-color: #e9ecef;
+        }
+        .filter-section {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body class="bg-light">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary mb-4">
+        <div class="container">
+            <a class="navbar-brand" href="#">Donation Manager</a>
+            <button class="btn btn-outline-light" onclick="clearAllDonations()">Clear All Donations</button>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="card mb-4">
+            <div class="card-header bg-white">
+                <h5 class="mb-0">Add New Donation</h5>
+            </div>
+            <div class="card-body">
+                <form id="donationForm" onsubmit="addDonation(event)">
+                    <div class="row">
+                        <div class="col-md-3 mb-3">
+                            <label for="donor" class="form-label">Donor Name</label>
+                            <input type="text" class="form-control" id="donor" required>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label for="amount" class="form-label">Amount</label>
+                            <input type="number" class="form-control" id="amount" step="0.01" min="0" required>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label for="donation_type" class="form-label">Currency</label>
+                            <select class="form-select" id="donation_type" required>
+                                <option value="USD">USD</option>
+                                <option value="EURO">EURO</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label">&nbsp;</label>
+                            <button type="submit" class="btn btn-primary w-100">Add Donation</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="stats-card">
+                    <h6 class="text-muted">Total Donations</h6>
+                    <h3 id="totalDonations">0</h3>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stats-card">
+                    <h6 class="text-muted">USD Donations</h6>
+                    <h3 id="usdDonations">0</h3>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stats-card">
+                    <h6 class="text-muted">EURO Donations</h6>
+                    <h3 id="euroDonations">0</h3>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stats-card">
+                    <h6 class="text-muted">Top Donor</h6>
+                    <h3 id="topDonor">-</h3>
+                </div>
+            </div>
+        </div>
+
+        <div class="filter-section">
+            <div class="row">
+                <div class="col-md-4">
+                    <label for="startDate" class="form-label">Start Date</label>
+                    <input type="date" class="form-control" id="startDate">
+                </div>
+                <div class="col-md-4">
+                    <label for="endDate" class="form-label">End Date</label>
+                    <input type="date" class="form-control" id="endDate">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">&nbsp;</label>
+                    <button class="btn btn-secondary w-100" onclick="filterDonations()">Filter Donations</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header bg-white">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Top Donors</h5>
+                    <select class="form-select" style="width: auto;" onchange="fetchTopDonors(this.value)">
+                        <option value="3">Top 3</option>
+                        <option value="5">Top 5</option>
+                        <option value="10">Top 10</option>
+                    </select>
+                </div>
+            </div>
+            <div class="card-body">
+                <div id="topDonorsList" class="row"></div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header bg-white">
+                <h5 class="mb-0">Recent Donations</h5>
+            </div>
+            <div class="card-body">
+                <div id="donationsList" class="row"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script>
+        flatpickr("#startDate", {});
+        flatpickr("#endDate", {});
+
+        function fetchDonations() {
+            fetch('/donations')
+                .then(response => response.json())
+                .then(donations => {
+                    const donationsList = document.getElementById('donationsList');
+                    donationsList.innerHTML = '';
+                    donations.forEach(donation => {
+                        const card = document.createElement('div');
+                        card.className = 'col-md-4';
+                        card.innerHTML = `
+                            <div class="card donation-card">
+                                <div class="card-body">
+                                    <h5 class="card-title">${donation.donor}</h5>
+                                    <p class="card-text">
+                                        <strong>${donation.donation_type}</strong> ${donation.amount}<br>
+                                        <small class="text-muted">Date: ${donation.donation_date}</small>
+                                    </p>
+                                    <button class="btn btn-sm btn-danger" onclick="deleteDonation(${donation.id})">
+                                        Delete
+                                    </button>
+                                </div>
+                            </div>
+                        `;
+                        donationsList.appendChild(card);
+                    });
+                });
+        }
+
+        function addDonation(event) {
+            event.preventDefault();
+            const donation = {
+                donor: document.getElementById('donor').value,
+                amount: parseFloat(document.getElementById('amount').value),
+                donation_type: document.getElementById('donation_type').value
+            };
+
+            fetch('/donation', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(donation)
+            })
+            .then(response => response.json())
+            .then(() => {
+                document.getElementById('donationForm').reset();
+                fetchDonations();
+                updateStats();
+                fetchTopDonors(3);
+            });
+        }
+
+        function deleteDonation(id) {
+            if (confirm('Are you sure you want to delete this donation?')) {
+                fetch(`/donation/${id}`, {
+                    method: 'DELETE'
+                })
+                .then(() => {
+                    fetchDonations();
+                    updateStats();
+                    fetchTopDonors(3);
+                });
+            }
+        }
+        function clearAllDonations() {
+            if (confirm('Are you sure you want to delete all donations? This cannot be undone.')) {
+                fetch('/donations', {
+                    method: 'DELETE'
+                })
+                .then(() => {
+                    fetchDonations();
+                    updateStats();
+                    fetchTopDonors(3);
+                });
+            }
+        }
+
+        function filterDonations() {
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+            
+            if (!startDate || !endDate) {
+                alert('Please select both start and end dates');
+                return;
+            }
+
+            fetch(`/donations/date_range?start_date=${startDate}&end_date=${endDate}`)
+                .then(response => response.json())
+                .then(donations => {
+                    const donationsList = document.getElementById('donationsList');
+                    donationsList.innerHTML = '';
+                    donations.forEach(donation => {
+                        const card = document.createElement('div');
+                        card.className = 'col-md-4';
+                        card.innerHTML = `
+                            <div class="card donation-card">
+                                <div class="card-body">
+                                    <h5 class="card-title">${donation.donor}</h5>
+                                    <p class="card-text">
+                                        <strong>${donation.donation_type}</strong> ${donation.amount}<br>
+                                        <small class="text-muted">Date: ${donation.donation_date}</small>
+                                    </p>
+                                    <button class="btn btn-sm btn-danger" onclick="deleteDonation(${donation.id})">
+                                        Delete
+                                    </button>
+                                </div>
+                            </div>
+                        `;
+                        donationsList.appendChild(card);
+                    });
+                });
+        }
+
+        function fetchTopDonors(n) {
+            fetch(`/donations/top/${n}`)
+                .then(response => response.json())
+                .then(data => {
+                    const topDonorsList = document.getElementById('topDonorsList');
+                    topDonorsList.innerHTML = '';
+                    Object.entries(data['top donors']).forEach(([donor, amount]) => {
+                        const col = document.createElement('div');
+                        col.className = 'col-md-4 mb-3';
+                        col.innerHTML = `
+                            <div class="card h-100">
+                                <div class="card-body">
+                                    <h5 class="card-title">${donor}</h5>
+                                    <p class="card-text">Total: ${amount}</p>
+                                </div>
+                            </div>
+                        `;
+                        topDonorsList.appendChild(col);
+                    });
+                });
+        }
+
+        function updateStats() {
+            fetch('/donations/total')
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('totalDonations').textContent = data.total_donations;
+                });
+
+            fetch('/donations/total/USD')
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('usdDonations').textContent = data.total_usd_donations;
+                });
+
+            fetch('/donations/total/EURO')
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('euroDonations').textContent = data.total_euro_donations;
+                });
+            
+            fetch('/donations/top/1')
+                .then(response => response.json())
+                .then(data => {
+                    const topDonors = data['top donors'];
+                    const topDonor = Object.keys(topDonors)[0];
+                    document.getElementById('topDonor').textContent = topDonor || '-';
+                });
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            fetchDonations();
+            updateStats();
+            fetchTopDonors(3);
+        });
+    </script>
+</body>
+</html> 
